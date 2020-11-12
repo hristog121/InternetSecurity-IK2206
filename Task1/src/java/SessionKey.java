@@ -14,14 +14,24 @@ public class SessionKey {
     private SecretKey secretKey;
 
     public SessionKey(Integer keylength) throws NoSuchAlgorithmException {
+
+        // KeyGenerator object
         KeyGenerator KeyGen = KeyGenerator.getInstance("AES");
-        KeyGen.init(keylength);
+
+        //create a secure random object
+        SecureRandom secRandom = new SecureRandom();
+
+        // KeyGen init
+        KeyGen.init(keylength, secRandom);
+
+        // Make a key and store it in secret key
         this.secretKey = KeyGen.generateKey();
     }
 
-    public SessionKey(String encodedkey){
-        byte[] Base64Key = Base64.getDecoder().decode(encodedkey);
-        this.secretKey = new SecretKeySpec(Base64Key,0,Base64Key.length, "AES");
+    public SessionKey(String encodedKey){
+        // Decode the Base64 Encoded String
+        byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+        this.secretKey = new SecretKeySpec(decodedKey,0,decodedKey.length, "AES");
     }
 
     public SessionKey(byte[] Key) {
