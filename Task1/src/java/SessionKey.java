@@ -1,7 +1,3 @@
-/**
- *
- */
-
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -9,41 +5,42 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-
 public class SessionKey {
+
     private SecretKey secretKey;
 
-    public SessionKey(Integer keylength) throws NoSuchAlgorithmException {
+    // Source from http://tutorials.jenkov.com/java-cryptography/index.html
+    SessionKey(Integer keylength) throws NoSuchAlgorithmException {
 
-        // KeyGenerator object
-        KeyGenerator KeyGen = KeyGenerator.getInstance("AES");
+        //Creating a KeyGenerator object
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
 
-        //create a secure random object
-        SecureRandom secRandom = new SecureRandom();
+        //Creating a SecureRandom object
+        SecureRandom secureRandom = new SecureRandom();
 
-        // KeyGen init
-        KeyGen.init(keylength, secRandom);
+        //Initializing the KeyGenerator
+        keyGen.init(keylength, secureRandom);
 
-        // Make a key and store it in secret key
-        this.secretKey = KeyGen.generateKey();
+        //Creating/Generating a key
+        this.secretKey = keyGen.generateKey();
     }
 
-    public SessionKey(String encodedKey){
-        // Decode the Base64 Encoded String
-        byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
-        this.secretKey = new SecretKeySpec(decodedKey,0,decodedKey.length, "AES");
+
+    SessionKey(byte[] keybytes) {
+        // Decode the base64 Encoded string
+        //byte[] decodedKey = Base64.getDecoder().decode(encodedkey);
+
+        // Rebuild key using SecretKeySpec
+        this.secretKey = new SecretKeySpec(keybytes, 0, keybytes.length, "AES");
     }
 
-    public SessionKey(byte[] Key) {
-        this.secretKey = new SecretKeySpec(Key,"AES");
-    }
 
     public SecretKey getSecretKey() {
         return this.secretKey;
     }
 
-    public String encodeKey() {
-        return Base64.getEncoder().encodeToString(this.secretKey.getEncoded());
-    }
 
+    public byte[] getKeyBytes() {
+        return secretKey.getEncoded();
+    }
 }
