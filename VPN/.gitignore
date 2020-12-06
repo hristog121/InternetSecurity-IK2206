@@ -1,3 +1,5 @@
-/Users/iceroot/WorkingDev/InternetSecurity-IK2206/VPN/src/java/OLD KEYS AND CERTS
+src/java/OLD KEYS AND CERTS
 .idea
 .DS_store
+.VPN/src/.DS_Store
+.gitignore
