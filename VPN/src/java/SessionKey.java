@@ -25,6 +25,11 @@ public class SessionKey {
         this.secretKey = keyGen.generateKey();
     }
 
+    SessionKey(String encodedKey) {
+        byte[] dcdKey = Base64.getDecoder().decode(encodedKey);
+        secretKey = new SecretKeySpec(dcdKey, 0, dcdKey.length, "AES"); // rebuild key using SecretKeySpec
+    }
+
 
     SessionKey(byte[] keybytes) {
         // Decode the base64 Encoded string
@@ -42,5 +47,9 @@ public class SessionKey {
 
     public byte[] getKeyBytes() {
         return secretKey.getEncoded();
+    }
+    String encodeKey(){
+        byte[] keyByte= secretKey.getEncoded();
+        return Base64.getEncoder().encodeToString(keyByte);
     }
 }
