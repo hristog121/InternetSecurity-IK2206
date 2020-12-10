@@ -44,6 +44,15 @@ public class ForwardServer
     private void doHandshake(Socket handshakeSocket) throws UnknownHostException, IOException, Exception {
 
         serverHandshake = new ServerHandshake(handshakeSocket);
+        serverHandshake.receiveClientHello(handshakeSocket,arguments.get("cacert"));
+        serverHandshake.serverHello(handshakeSocket,arguments.get("usercert"));
+        serverHandshake.receiveForward(handshakeSocket);
+
+        //serverHandshake.sendSession(handshakeSocket,arguments.get("targethost"),arguments.get(String.valueOf("targetport")));
+
+        handshakeListenSocket.bind(new InetSocketAddress(ServerHandshake.sessionHost, ServerHandshake.sessionPort));
+        serverHandshake.sendSession(handshakeSocket,ClientHandshake.sessionHost,ClientHandshake.sessionPort);
+        handshakeSocket.close();
     }
 
     /**

@@ -14,9 +14,16 @@
  */
 
  
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.lang.AssertionError;
 import java.lang.IllegalArgumentException;
 import java.lang.Integer;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -42,8 +49,15 @@ public class ForwardClient
      * learn parameters: session port, host, key, and IV
      */
 
-    private static void doHandshake(Socket handshakeSocket) throws IOException {
+    private static void doHandshake(Socket handshakeSocket) throws Exception {
         clientHandshake = new ClientHandshake(handshakeSocket);
+        //clientHandshake.
+        clientHandshake.clientHello(handshakeSocket,arguments.get("usercert"));
+        clientHandshake.receiveServerHello(handshakeSocket, arguments.get("cacert"));
+        clientHandshake.sendForward(handshakeSocket, arguments.get("targethost"), arguments.get("targetport"));
+        clientHandshake.receiveSession(handshakeSocket,arguments.get("key"));
+
+        handshakeSocket.close();
     }
 
     /*
@@ -60,7 +74,7 @@ public class ForwardClient
      * Run handshake negotiation, then set up a listening socket 
      * and start port forwarder thread.
      */
-    static public void startForwardClient() throws IOException {
+    static public void startForwardClient() throws Exception {
 
         /*
          * First, run the handshake protocol to learn session parameters.
@@ -123,8 +137,7 @@ public class ForwardClient
      * Program entry point. Reads arguments and run
      * the forward server
      */
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws Exception {
         try {
             arguments = new Arguments();
             arguments.setDefault("handshakeport", Integer.toString(DEFAULTHANDSHAKEPORT));
@@ -144,9 +157,21 @@ public class ForwardClient
         }
         try {
             startForwardClient();
-        } catch (IOException ex) {
+        } catch (IOException | CertificateException ex) {
             System.out.println(ex);
             System.exit(1);
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
         }
     }
 }
