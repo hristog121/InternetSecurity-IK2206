@@ -14,6 +14,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Optional;
 
 public class ServerHandshake {
     /*
@@ -63,8 +64,11 @@ public class ServerHandshake {
         HandshakeMessage receiveFromClient = new HandshakeMessage();
         receiveFromClient.recv(socket);
         if (receiveFromClient.getParameter("MessageType").equals("ClientHello")){
+            //System.out.println("HERE1: ServerHandshake");
             VerifyCertificate.getVerifyCaUser(caCert,receiveFromClient.getParameter("Certificate"));
+            //System.out.println("Here2: ServerHandshake");
             clientCert = VerifyCertificate.decodeCert(receiveFromClient.getParameter("Certificate"));
+
             Logger.log("Verify succeeded");
 
 
@@ -74,16 +78,35 @@ public class ServerHandshake {
         }
     }
 
-    public void receiveForward(Socket socket) throws IOException {
+    public static class ForwardTarget {
+        private String host;
+        private int port;
+
+        public ForwardTarget(String host, int port) {
+            this.host = host;
+            this.port = port;
+        }
+
+        public String getHost() {
+            return host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+    }
+
+    public ForwardTarget receiveForward(Socket socket) throws IOException {
         HandshakeMessage receiveFromClient = new HandshakeMessage();
         receiveFromClient.recv(socket);
-        if (receiveFromClient.getParameter("Forward").equals("Forward")){
+        if (receiveFromClient.getParameter("MessageType").equals("Forward")){
             targetHost = receiveFromClient.getParameter("TargetHost");
             targetPort = Integer.valueOf(receiveFromClient.getParameter("TargetPort"));
             Logger.log("Forward set uo to: " + targetHost + ":" + targetPort);
+            return new ForwardTarget(targetHost, targetPort);
         } else {
             System.out.println("Forward: Something went wrong - MessageType fail");
-            socket.close();
+            throw new IllegalArgumentException("Forward: Something went wrong - MessageType fail");
         }
     }
 

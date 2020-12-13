@@ -42,17 +42,15 @@ public class ForwardServer
      * target host/port, etc.
      */
     private void doHandshake(Socket handshakeSocket) throws UnknownHostException, IOException, Exception {
-
         serverHandshake = new ServerHandshake(handshakeSocket);
         serverHandshake.receiveClientHello(handshakeSocket,arguments.get("cacert"));
         serverHandshake.serverHello(handshakeSocket,arguments.get("usercert"));
-        serverHandshake.receiveForward(handshakeSocket);
+        ServerHandshake.ForwardTarget handshakeMessage = serverHandshake.receiveForward(handshakeSocket);
 
         //serverHandshake.sendSession(handshakeSocket,arguments.get("targethost"),arguments.get(String.valueOf("targetport")));
 
-        handshakeListenSocket.bind(new InetSocketAddress(ServerHandshake.sessionHost, ServerHandshake.sessionPort));
-        serverHandshake.sendSession(handshakeSocket,ClientHandshake.sessionHost,ClientHandshake.sessionPort);
-        handshakeSocket.close();
+        //handshakeListenSocket.bind(new InetSocketAddress(ServerHandshake.sessionHost, ServerHandshake.sessionPort));
+        serverHandshake.sendSession(handshakeSocket, handshakeMessage.getHost(), handshakeMessage.getPort());
     }
 
     /**
@@ -78,11 +76,13 @@ public class ForwardServer
         while(true) {
 
             Socket handshakeSocket = handshakeListenSocket.accept();
+
             String clientHostPort = handshakeSocket.getInetAddress().getHostName() + ":" +
                 handshakeSocket.getPort();
             Logger.log("Incoming handshake connection from " + clientHostPort);
 
             doHandshake(handshakeSocket);
+            System.out.println("HERE: FORWARD SERVER");
             handshakeSocket.close();
 
             /*
@@ -91,8 +91,10 @@ public class ForwardServer
              */
 
             ForwardServerClientThread forwardThread;
+
+
             forwardThread = new ForwardServerClientThread(serverHandshake.sessionSocket,
-                                                          serverHandshake.targetHost, serverHandshake.targetPort);
+                                                          serverHandshake.targetHost, serverHandshake.targetPort, serverHandshake.sessionKey, serverHandshake.sessionIV);
             forwardThread.start();
         }
     }
@@ -126,6 +128,7 @@ public class ForwardServer
     public static void main(String[] args)
         throws Exception
     {
+        try {
         arguments = new Arguments();
         arguments.setDefault("handshakeport", Integer.toString(DEFAULTHANDSHAKEPORT));
         arguments.setDefault("handshakehost", DEFAULTHANDSHAKEHOST);
@@ -133,6 +136,9 @@ public class ForwardServer
         
         ForwardServer srv = new ForwardServer();
         srv.startForwardServer();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
  
 }

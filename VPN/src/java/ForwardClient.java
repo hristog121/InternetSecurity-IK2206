@@ -55,7 +55,7 @@ public class ForwardClient
         clientHandshake.clientHello(handshakeSocket,arguments.get("usercert"));
         clientHandshake.receiveServerHello(handshakeSocket, arguments.get("cacert"));
         clientHandshake.sendForward(handshakeSocket, arguments.get("targethost"), arguments.get("targetport"));
-        clientHandshake.receiveSession(handshakeSocket,arguments.get("key"));
+        clientHandshake.receiveSession(handshakeSocket, arguments.get("key"));
 
         handshakeSocket.close();
     }
@@ -87,7 +87,7 @@ public class ForwardClient
          * Create a new listener socket for the proxy port. This is where
          * the user will connect.
          */
-        ServerSocket proxySocket = new ServerSocket(Integer.parseInt(arguments.get("proxyport")));
+        ServerSocket proxySocket = new ServerSocket(Integer.parseInt(arguments.get("targetport")));
 
         /* 
          * Tell the user, so the user knows the we are listening at the 
@@ -101,7 +101,7 @@ public class ForwardClient
          */
         ForwardServerClientThread forwardThread =
             new ForwardServerClientThread(proxySocket,
-                                          clientHandshake.sessionHost, clientHandshake.sessionPort);
+                                          clientHandshake.sessionHost, clientHandshake.sessionPort, clientHandshake.sessionKey, clientHandshake.sessionIV);
         /* 
          * Launch the fowarder 
          */
@@ -158,6 +158,7 @@ public class ForwardClient
         try {
             startForwardClient();
         } catch (IOException | CertificateException ex) {
+            ex.printStackTrace();
             System.out.println(ex);
             System.exit(1);
         } catch (NoSuchPaddingException e) {

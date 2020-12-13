@@ -3,7 +3,13 @@
  * connects two sockets and starts the TCP forwarding between given client
  * and its assigned server. After the forwarding is failed and the two threads
  * are stopped, closes the sockets.
- *
+ * <p>
+ * <p>
+ * Modifications for IK2206:
+ * - Server pool removed
+ * - Two variants - client connects to listening socket or client is already connected
+ * <p>
+ * Peter Sjodin, KTH
  */
 
 /**
@@ -21,12 +27,15 @@ import java.net.SocketException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
- 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
 import javax.crypto.CipherOutputStream;
 import javax.crypto.CipherInputStream;
+import javax.crypto.NoSuchPaddingException;
 
-public class ForwardServerClientThread extends Thread
-{
+public class ForwardServerClientThread extends Thread {
     private ForwardClient mForwardClient = null;
     private Socket mClientSocket = null;
     private Socket mServerSocket = null;
@@ -37,17 +46,43 @@ public class ForwardServerClientThread extends Thread
     private int mServerPort;
     private String mServerHost;
 
+
+    //Crypto vars
+    private SessionEncrypter sessionEncrypter;
+    private SessionDecrypter sessionDecrypter;
+    private String user;
+
     /**
      * Creates a client thread for handling clients of NakovForwardServer.
      * Wait for client to connect on client listening socket.
      * A server socket is created later by run() method.
      */
-    public ForwardServerClientThread(ServerSocket listensocket, String serverhost, int serverport) throws IOException
-    {
+    public ForwardServerClientThread(Socket aClientSocket, String serverhost, int serverport, byte[] sessionKey, byte[] sessionIV) throws IOException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+
+        mClientSocket = aClientSocket;
+        mServerPort = serverport;
+        mServerHost = serverhost;
+
+        user = "Client";
+        sessionEncrypter = new SessionEncrypter(sessionKey, sessionIV);
+
+        sessionDecrypter = new SessionDecrypter(sessionKey, sessionIV);
+
+    }
+
+    public ForwardServerClientThread(ServerSocket listensocket, String serverhost, int serverport, byte[] sessionKey, byte[] sessionIV) throws IOException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+
         mListenSocket = listensocket;
         mServerPort = serverport;
         mServerHost = serverhost;
+
+        user = "Server";
+        sessionEncrypter = new SessionEncrypter(sessionKey, sessionIV);
+
+        sessionDecrypter = new SessionDecrypter(sessionKey, sessionIV);
+
     }
+
 
     public ServerSocket getListenSocket() {
         return mListenSocket;
@@ -59,24 +94,23 @@ public class ForwardServerClientThread extends Thread
      * Starts two threads for forwarding : "client in <--> dest server out" and
      * "dest server in <--> client out", waits until one of these threads stop
      * due to read/write failure or connection closure. Closes opened connections.
-     * 
+     *
      */
-    public void run()
-    {
+    public void run() {
         try {
- 
+
             // Wait for incoming connection on listen socket
             mClientSocket = mListenSocket.accept();
             mClientHostPort = mClientSocket.getInetAddress().getHostName() + ":" + mClientSocket.getPort();
             Logger.log("Accepted from " + mClientHostPort + " on " + mListenSocket.getLocalPort());
-               
+
             try {
                 mServerSocket = new Socket(mServerHost, mServerPort);
             } catch (Exception e) {
                 System.out.println("Connection failed to " + mServerHost + ":" + mServerPort);
-                e.printStackTrace(); 
+                e.printStackTrace();
                 // Prints what exception has been thrown 
-                System.out.println(e); 
+                System.out.println(e);
             }
 
             // Obtain input and output streams of server and client
@@ -85,40 +119,55 @@ public class ForwardServerClientThread extends Thread
             InputStream serverIn = mServerSocket.getInputStream();
             OutputStream serverOut = mServerSocket.getOutputStream();
 
+            if (user.equals("Client")){
+                clientIn = sessionDecrypter.openCipherInputStream(clientIn);
+                clientOut = sessionEncrypter.openCipherOutputStream(clientOut);
+            }
+
+            if (user.equals("Server")) {
+                serverIn = sessionDecrypter.openCipherInputStream(serverIn);
+                serverOut = sessionEncrypter.openCipherOutputStream(serverOut);
+            }
+
             mServerHostPort = mServerHost + ":" + mServerPort;
             Logger.log("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  started.");
- 
+
             // Start forwarding of socket data between server and client
             ForwardThread clientForward = new ForwardThread(this, clientIn, serverOut);
             ForwardThread serverForward = new ForwardThread(this, serverIn, clientOut);
             mBothConnectionsAreAlive = true;
             clientForward.start();
             serverForward.start();
- 
-        } catch (IOException ioe) {
-           ioe.printStackTrace();
+
+        } catch (IOException | InvalidKeyException | InvalidAlgorithmParameterException | NoSuchPaddingException | NoSuchAlgorithmException ioe) {
+            ioe.printStackTrace();
         }
     }
- 
+
     /**
      * connectionBroken() method is called by forwarding child threads to notify
      * this thread (their parent thread) that one of the connections (server or client)
      * is broken (a read/write failure occured). This method disconnects both server
      * and client sockets causing both threads to stop forwarding.
      */
-    public synchronized void connectionBroken()
-    {
+    public synchronized void connectionBroken() {
         if (mBothConnectionsAreAlive) {
-           // One of the connections is broken. Close the other connection and stop forwarding
-           // Closing these socket connections will close their input/output streams
-           // and that way will stop the threads that read from these streams
-           try { mServerSocket.close(); } catch (IOException e) {}
-           try { mClientSocket.close(); } catch (IOException e) {}
- 
-           mBothConnectionsAreAlive = false;
- 
-           Logger.log("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  stopped.");
+            // One of the connections is broken. Close the other connection and stop forwarding
+            // Closing these socket connections will close their input/output streams
+            // and that way will stop the threads that read from these streams
+            try {
+                mServerSocket.close();
+            } catch (IOException e) {
+            }
+            try {
+                mClientSocket.close();
+            } catch (IOException e) {
+            }
+
+            mBothConnectionsAreAlive = false;
+
+            Logger.log("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  stopped.");
         }
     }
- 
+
 }

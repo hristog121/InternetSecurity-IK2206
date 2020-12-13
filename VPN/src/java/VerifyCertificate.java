@@ -25,22 +25,23 @@ public class VerifyCertificate {
         return cert;
     }
 
-    public static void getVerifyCaUser(String caCert2, String userCert2) throws Exception {
+    public static void getVerifyCaUser(String caCert, String userCert) throws Exception {
         X509Certificate caCertificate = null;
-        X509Certificate userCert = null;
+        X509Certificate userCertificate = null;
         try {
-            caCertificate = getCert(caCert2);
-            caCertificate.checkValidity();
-            userCert = getCert(userCert2);
-            userCert.checkValidity();
+            //System.out.println("HERE: VERIFY CERT");
+            caCertificate = getCert(caCert);
+            userCertificate = decodeCert(userCert);
+            //userCertificate = getCert(userCert);
+
             caCertificate.verify(caCertificate.getPublicKey());
-            userCert.verify(caCertificate.getPublicKey());
-            System.out.println("Pass");
+            userCertificate.verify(caCertificate.getPublicKey());
+            System.out.println("Pass VERIFICATION");
         }
         catch(Exception E){
-            System.out.println("Fail");
-            System.out.println(E.toString());
-            throw new Exception();
+            System.out.println("Fail VERIFICATION");
+            E.printStackTrace();
+            //throw new Exception(E);
         }
 
     }

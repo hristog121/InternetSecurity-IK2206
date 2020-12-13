@@ -74,6 +74,7 @@ public class ClientHandshake {
     }
 
     public void receiveSession(Socket socket, String privKeyFile) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchPaddingException {
+        try {
         HandshakeMessage receiveFromServer = new HandshakeMessage();
         receiveFromServer.recv(socket);
         if (receiveFromServer.getParameter("MessageType").equals("Session")) {
@@ -90,7 +91,9 @@ public class ClientHandshake {
         } else {
             System.out.println("Receiving Session: Something went wrong - MessageType fail");
         }
-
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
 }
