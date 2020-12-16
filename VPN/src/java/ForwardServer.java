@@ -45,12 +45,9 @@ public class ForwardServer
         serverHandshake = new ServerHandshake(handshakeSocket);
         serverHandshake.receiveClientHello(handshakeSocket,arguments.get("cacert"));
         serverHandshake.serverHello(handshakeSocket,arguments.get("usercert"));
-        ServerHandshake.ForwardTarget handshakeMessage = serverHandshake.receiveForward(handshakeSocket);
+        serverHandshake.receiveForward(handshakeSocket);
+        serverHandshake.sendSession(handshakeSocket, serverHandshake.sessionHost, serverHandshake.sessionPort);
 
-        //serverHandshake.sendSession(handshakeSocket,arguments.get("targethost"),arguments.get(String.valueOf("targetport")));
-
-        //handshakeListenSocket.bind(new InetSocketAddress(ServerHandshake.sessionHost, ServerHandshake.sessionPort));
-        serverHandshake.sendSession(handshakeSocket, handshakeMessage.getHost(), handshakeMessage.getPort());
     }
 
     /**
@@ -82,7 +79,6 @@ public class ForwardServer
             Logger.log("Incoming handshake connection from " + clientHostPort);
 
             doHandshake(handshakeSocket);
-            System.out.println("HERE: FORWARD SERVER");
             handshakeSocket.close();
 
             /*
@@ -92,9 +88,14 @@ public class ForwardServer
 
             ForwardServerClientThread forwardThread;
 
-
-            forwardThread = new ForwardServerClientThread(serverHandshake.sessionSocket,
-                                                          serverHandshake.targetHost, serverHandshake.targetPort, serverHandshake.sessionKey, serverHandshake.sessionIV);
+            // ForwardServerClientThread extended to accommodate sessionKey and sessionIV
+            forwardThread = new ForwardServerClientThread(
+                serverHandshake.sessionSocket,
+                serverHandshake.targetHost,
+                serverHandshake.targetPort,
+                serverHandshake.sessionKey,
+                serverHandshake.sessionIV
+            );
             forwardThread.start();
         }
     }

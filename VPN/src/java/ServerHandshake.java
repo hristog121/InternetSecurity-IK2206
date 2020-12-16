@@ -2,6 +2,7 @@
  * Server side of the handshake.
  */
 
+import java.util.Random;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -24,12 +25,12 @@ public class ServerHandshake {
     
     /* Session host/port, and the corresponding ServerSocket  */
     public static ServerSocket sessionSocket;
-    public static String sessionHost;
-    public static int sessionPort;    
+    public String sessionHost;
+    public int sessionPort;
 
     /* The final destination -- simulate handshake with constants */
-    public static String targetHost = "localhost";
-    public static int targetPort = 6789;
+    public String targetHost = "localhost";
+    public int targetPort = 6789;
 
     /* Security parameters key/iv should also go here. Fill in! */
     public X509Certificate clientCert;
@@ -42,9 +43,14 @@ public class ServerHandshake {
      * with a preassigned port number for the session.
      */ 
     public ServerHandshake(Socket handshakeSocket) throws IOException {
-        sessionSocket = new ServerSocket(12345);
+        sessionPort = getPort();
+        sessionSocket = new ServerSocket(sessionPort);
         sessionHost = sessionSocket.getInetAddress().getHostName();
-        sessionPort = sessionSocket.getLocalPort();
+    }
+
+    private int getPort() {
+        Random r = new Random( System.currentTimeMillis() );
+        return ((1 + r.nextInt(2)) * 10000 + r.nextInt(10000));
     }
 
     // Send ServerHello Message to client
@@ -96,14 +102,13 @@ public class ServerHandshake {
         }
     }
 
-    public ForwardTarget receiveForward(Socket socket) throws IOException {
+    public void receiveForward(Socket socket) throws IOException {
         HandshakeMessage receiveFromClient = new HandshakeMessage();
         receiveFromClient.recv(socket);
         if (receiveFromClient.getParameter("MessageType").equals("Forward")){
             targetHost = receiveFromClient.getParameter("TargetHost");
             targetPort = Integer.valueOf(receiveFromClient.getParameter("TargetPort"));
-            Logger.log("Forward set uo to: " + targetHost + ":" + targetPort);
-            return new ForwardTarget(targetHost, targetPort);
+            Logger.log("Forward set up to: " + targetHost + ":" + targetPort);
         } else {
             System.out.println("Forward: Something went wrong - MessageType fail");
             throw new IllegalArgumentException("Forward: Something went wrong - MessageType fail");

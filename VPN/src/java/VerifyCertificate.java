@@ -7,8 +7,8 @@ import java.util.Base64;
 
 public class VerifyCertificate {
     private static CertificateFactory certFactory;
-    private static X509Certificate caCertificate;
-    private static X509Certificate userCertificate;
+    //private static X509Certificate caCertificate;
+    //private static X509Certificate userCertificate;
     //get certs
     public static X509Certificate getCert(String certificate) throws IOException, CertificateException {
         InputStream certInputStream = null;
@@ -28,18 +28,27 @@ public class VerifyCertificate {
     public static void getVerifyCaUser(String caCert, String userCert) throws Exception {
         X509Certificate caCertificate = null;
         X509Certificate userCertificate = null;
+        X509Certificate user2Cert = null;
         try {
             //System.out.println("HERE: VERIFY CERT");
             caCertificate = getCert(caCert);
+            //user2Cert = getCert(userCert);
             userCertificate = decodeCert(userCert);
-            //userCertificate = getCert(userCert);
 
+            String clientDN = getCert(userCert).getSubjectDN().getName();
+            String caDn = getCert(caCert).getSubjectDN().getName();
+            System.out.println("Client DN");
+            System.out.println(clientDN);
+            System.out.println("CA DN");
+            System.out.println(caDn);
             caCertificate.verify(caCertificate.getPublicKey());
             userCertificate.verify(caCertificate.getPublicKey());
-            System.out.println("Pass VERIFICATION");
+            System.out.println("Pass");
+
+
         }
         catch(Exception E){
-            System.out.println("Fail VERIFICATION");
+            System.out.println("Fail");
             E.printStackTrace();
             //throw new Exception(E);
         }

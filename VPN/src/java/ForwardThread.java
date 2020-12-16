@@ -43,6 +43,7 @@ private static final int READ_BUFFER_SIZE = 8192;
                 if (bytesRead == -1)
                     break; // End of stream is reached --> exit the thread
                 mOutputStream.write(buffer, 0, bytesRead);
+                System.out.println("Writing bytes");
             }
         } catch (IOException e) {
             // Read/write failed --> connection is broken --> exit the thread

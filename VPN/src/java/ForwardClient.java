@@ -87,7 +87,7 @@ public class ForwardClient
          * Create a new listener socket for the proxy port. This is where
          * the user will connect.
          */
-        ServerSocket proxySocket = new ServerSocket(Integer.parseInt(arguments.get("targetport")));
+        ServerSocket proxySocket = new ServerSocket(Integer.parseInt(arguments.get("proxyport")));
 
         /* 
          * Tell the user, so the user knows the we are listening at the 
@@ -102,7 +102,7 @@ public class ForwardClient
         ForwardServerClientThread forwardThread =
             new ForwardServerClientThread(proxySocket,
                                           clientHandshake.sessionHost, clientHandshake.sessionPort, clientHandshake.sessionKey, clientHandshake.sessionIV);
-        /* 
+        /*
          * Launch the fowarder 
          */
         forwardThread.start();

@@ -102,7 +102,7 @@ public class ForwardServerClientThread extends Thread {
             // Wait for incoming connection on listen socket
             mClientSocket = mListenSocket.accept();
             mClientHostPort = mClientSocket.getInetAddress().getHostName() + ":" + mClientSocket.getPort();
-            Logger.log("Accepted from " + mClientHostPort + " on " + mListenSocket.getLocalPort());
+            System.out.println("Accepted from " + mClientHostPort + " on " + mListenSocket.getLocalPort());
 
             try {
                 mServerSocket = new Socket(mServerHost, mServerPort);
@@ -130,7 +130,7 @@ public class ForwardServerClientThread extends Thread {
             }
 
             mServerHostPort = mServerHost + ":" + mServerPort;
-            Logger.log("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  started.");
+            System.out.println("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  started.");
 
             // Start forwarding of socket data between server and client
             ForwardThread clientForward = new ForwardThread(this, clientIn, serverOut);
