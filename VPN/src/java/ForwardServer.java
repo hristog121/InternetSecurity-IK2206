@@ -1,10 +1,18 @@
 /**
  * Port forwarding server. Forward data
- * between two TCP ports. Based on Nakov TCP Socket Forward Server 
+ * between two TCP ports. Based on Nakov TCP Socket Forward Server
  * and adapted for IK2206.
- *
+ * <p>
  * Original copyright notice below.
  * (c) 2018 Peter Sjodin, KTH
+ * <p>
+ * Nakov TCP Socket Forward Server - freeware
+ * Version 1.0 - March, 2002
+ * (c) 2001 by Svetlin Nakov - http://www.nakov.com
+ * <p>
+ * Nakov TCP Socket Forward Server - freeware
+ * Version 1.0 - March, 2002
+ * (c) 2001 by Svetlin Nakov - http://www.nakov.com
  */
 
 /**
@@ -12,7 +20,7 @@
  * Version 1.0 - March, 2002
  * (c) 2001 by Svetlin Nakov - http://www.nakov.com
  */
- 
+
 import java.lang.AssertionError;
 import java.lang.Integer;
 import java.util.ArrayList;
@@ -25,9 +33,8 @@ import java.io.IOException;
 import java.io.FileInputStream;
 import java.util.Properties;
 import java.util.StringTokenizer;
- 
-public class ForwardServer
-{
+
+public class ForwardServer {
     private static final boolean ENABLE_LOGGING = true;
     public static final int DEFAULTHANDSHAKEPORT = 2206;
     public static final String DEFAULTHANDSHAKEHOST = "localhost";
@@ -36,18 +43,18 @@ public class ForwardServer
 
     private ServerHandshake serverHandshake;
     private ServerSocket handshakeListenSocket;
-    
+
     /**
      * Do handshake negotiation with client to authenticate and learn 
      * target host/port, etc.
      */
-    private void doHandshake(Socket handshakeSocket) throws UnknownHostException, IOException, Exception {
+    private void doHandshake(Socket handshakeSocket) throws Exception {
         serverHandshake = new ServerHandshake(handshakeSocket);
-        serverHandshake.receiveClientHello(handshakeSocket,arguments.get("cacert"));
-        serverHandshake.serverHello(handshakeSocket,arguments.get("usercert"));
+        serverHandshake.receiveClientHello(handshakeSocket, arguments.get("cacert"));
+        serverHandshake.serverHello(handshakeSocket, arguments.get("usercert"));
         serverHandshake.receiveForward(handshakeSocket);
-        serverHandshake.sendSession(handshakeSocket, serverHandshake.sessionHost, serverHandshake.sessionPort);
 
+        serverHandshake.sendSession(handshakeSocket, serverHandshake.sessionHost, serverHandshake.sessionPort);
     }
 
     /**
@@ -55,9 +62,8 @@ public class ForwardServer
      */
     public void startForwardServer()
     //throws IOException
-        throws Exception
-    {
- 
+            throws Exception {
+
         // Bind server on given TCP port
         int port = Integer.parseInt(arguments.get("handshakeport"));
         ServerSocket handshakeListenSocket;
@@ -68,78 +74,83 @@ public class ForwardServer
         }
 
         log("Nakov Forward Server started on TCP port " + handshakeListenSocket.getLocalPort());
- 
+
         // Accept client connections and process them until stopped
-        while(true) {
+        while (true) {
+            try {
+                Socket handshakeSocket = handshakeListenSocket.accept();
 
-            Socket handshakeSocket = handshakeListenSocket.accept();
+                String clientHostPort = handshakeSocket.getInetAddress().getHostName() + ":" +
+                        handshakeSocket.getPort();
+                Logger.log("Incoming handshake connection from " + clientHostPort);
 
-            String clientHostPort = handshakeSocket.getInetAddress().getHostName() + ":" +
-                handshakeSocket.getPort();
-            Logger.log("Incoming handshake connection from " + clientHostPort);
+                doHandshake(handshakeSocket);
+                handshakeSocket.close();
 
-            doHandshake(handshakeSocket);
-            handshakeSocket.close();
 
-            /*
-             * Set up port forwarding between an established session socket to target host/port. 
-             *
-             */
+                /*
+                 * Set up port forwarding between an established session socket to target host/port.
+                 *
+                 */
 
-            ForwardServerClientThread forwardThread;
+                ForwardServerClientThread forwardThread;
 
-            // ForwardServerClientThread extended to accommodate sessionKey and sessionIV
-            forwardThread = new ForwardServerClientThread(
-                serverHandshake.sessionSocket,
-                serverHandshake.targetHost,
-                serverHandshake.targetPort,
-                serverHandshake.sessionKey,
-                serverHandshake.sessionIV
-            );
-            forwardThread.start();
+
+                forwardThread = new ForwardServerClientThread(
+                        serverHandshake.sessionSocket,
+                        serverHandshake.targetHost,
+                        serverHandshake.targetPort,
+                        serverHandshake.sessionKey,
+                        serverHandshake.sessionIV
+                );
+                forwardThread.start();
+            } catch (Exception e) {
+                //e.printStackTrace();
+                Logger.log("An Error Occurred " + e.getMessage());
+
+            }
         }
+
     }
- 
+
     /**
      * Prints given log message on the standart output if logging is enabled,
      * otherwise ignores it
      */
-    public void log(String aMessage)
-    {
+    public void log(String aMessage) {
         if (ENABLE_LOGGING)
-           System.out.println(aMessage);
+            System.out.println(aMessage);
     }
- 
+
     static void usage() {
         String indent = "";
         System.err.println(indent + "Usage: " + PROGRAMNAME + " options");
         System.err.println(indent + "Where options are:");
         indent += "    ";
         System.err.println(indent + "--handshakehost=<hostname>");
-        System.err.println(indent + "--handshakeport=<portnumber>");        
+        System.err.println(indent + "--handshakeport=<portnumber>");
         System.err.println(indent + "--usercert=<filename>");
         System.err.println(indent + "--cacert=<filename>");
-        System.err.println(indent + "--key=<filename>");                
+        System.err.println(indent + "--key=<filename>");
     }
-    
+
     /**
      * Program entry point. Reads settings, starts check-alive thread and
      * the forward server
      */
     public static void main(String[] args)
-        throws Exception
-    {
+            throws Exception {
         try {
-        arguments = new Arguments();
-        arguments.setDefault("handshakeport", Integer.toString(DEFAULTHANDSHAKEPORT));
-        arguments.setDefault("handshakehost", DEFAULTHANDSHAKEHOST);
-        arguments.loadArguments(args);
-        
-        ForwardServer srv = new ForwardServer();
-        srv.startForwardServer();
+            arguments = new Arguments();
+            arguments.setDefault("handshakeport", Integer.toString(DEFAULTHANDSHAKEPORT));
+            arguments.setDefault("handshakehost", DEFAULTHANDSHAKEHOST);
+            arguments.loadArguments(args);
+
+            ForwardServer srv = new ForwardServer();
+            srv.startForwardServer();
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
- 
+
 }

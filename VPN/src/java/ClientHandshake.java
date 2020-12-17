@@ -52,10 +52,11 @@ public class ClientHandshake {
 
     // Receive server hello + cert from the server
     public void receiveServerHello(Socket socket, String caCert) throws Exception {
+        String expectedDN = "CN=server-pf.ik2206.kth.se";
         HandshakeMessage receiveFromServer = new HandshakeMessage();
         receiveFromServer.recv(socket);
         if (receiveFromServer.getParameter("MessageType").equals("ServerHello")) {
-           VerifyCertificate.getVerifyCaUser(caCert,receiveFromServer.getParameter("Certificate"));
+           VerifyCertificate.getVerifyCaUser(caCert,receiveFromServer.getParameter("Certificate"), expectedDN);
            serverCert = VerifyCertificate.decodeCert(receiveFromServer.getParameter("Certificate"));
            Logger.log("Verify succeeded");
         } else {

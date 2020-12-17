@@ -68,10 +68,11 @@ public class ServerHandshake {
 
     public void receiveClientHello(Socket socket, String caCert) throws Exception {
         HandshakeMessage receiveFromClient = new HandshakeMessage();
+        String expectedDN = "CN=client-pf.ik2206.kth.se";
         receiveFromClient.recv(socket);
         if (receiveFromClient.getParameter("MessageType").equals("ClientHello")){
             //System.out.println("HERE1: ServerHandshake");
-            VerifyCertificate.getVerifyCaUser(caCert,receiveFromClient.getParameter("Certificate"));
+            VerifyCertificate.getVerifyCaUser(caCert,receiveFromClient.getParameter("Certificate"), expectedDN);
             //System.out.println("Here2: ServerHandshake");
             clientCert = VerifyCertificate.decodeCert(receiveFromClient.getParameter("Certificate"));
 
@@ -108,7 +109,7 @@ public class ServerHandshake {
         if (receiveFromClient.getParameter("MessageType").equals("Forward")){
             targetHost = receiveFromClient.getParameter("TargetHost");
             targetPort = Integer.valueOf(receiveFromClient.getParameter("TargetPort"));
-            Logger.log("Forward set up to: " + targetHost + ":" + targetPort);
+            Logger.log("Forward set uo to: " + targetHost + ":" + targetPort);
         } else {
             System.out.println("Forward: Something went wrong - MessageType fail");
             throw new IllegalArgumentException("Forward: Something went wrong - MessageType fail");

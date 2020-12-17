@@ -7,8 +7,9 @@ import java.util.Base64;
 
 public class VerifyCertificate {
     private static CertificateFactory certFactory;
-    //private static X509Certificate caCertificate;
-    //private static X509Certificate userCertificate;
+    private static X509Certificate caCertificate;
+    private static X509Certificate userCertificate;
+
     //get certs
     public static X509Certificate getCert(String certificate) throws IOException, CertificateException {
         InputStream certInputStream = null;
@@ -18,36 +19,43 @@ public class VerifyCertificate {
             certFactory = CertificateFactory.getInstance("X.509");
             cert = (X509Certificate) certFactory.generateCertificate(certInputStream);
         } finally {
-            if (certInputStream != null ) {
+            if (certInputStream != null) {
                 certInputStream.close();
             }
         }
         return cert;
     }
 
-    public static void getVerifyCaUser(String caCert, String userCert) throws Exception {
+    public static void getVerifyCaUser(String caCert, String userCert, String expectedDN) throws Exception {
         X509Certificate caCertificate = null;
         X509Certificate userCertificate = null;
-        X509Certificate user2Cert = null;
         try {
             //System.out.println("HERE: VERIFY CERT");
             caCertificate = getCert(caCert);
-            //user2Cert = getCert(userCert);
             userCertificate = decodeCert(userCert);
+            //userCertificate = getCert(userCert);
 
-            String clientDN = getCert(userCert).getSubjectDN().getName();
+            String clientServerDN = decodeCert(userCert).getSubjectDN().getName();
             String caDn = getCert(caCert).getSubjectDN().getName();
-            System.out.println("Client DN");
-            System.out.println(clientDN);
-            System.out.println("CA DN");
-            System.out.println(caDn);
+            String[] split = clientServerDN.split(", ");
+            String[] split2 = caDn.split(", ");
+            String caExpectedDN = "CN=ca-pf.ik2206.kth.se";
+
+            if (split[1].equals(expectedDN)) {
+                System.out.println("DN PASS: " + expectedDN);
+            } else {
+                System.out.println("DN check failed");
+            }
+            if (split2[1].equals(caExpectedDN)) {
+                System.out.println("CA DN PASS: " + caExpectedDN);
+            } else {
+                System.out.println("CA DN check failed");
+            }
+
             caCertificate.verify(caCertificate.getPublicKey());
             userCertificate.verify(caCertificate.getPublicKey());
             System.out.println("Pass");
-
-
-        }
-        catch(Exception E){
+        } catch (Exception E) {
             System.out.println("Fail");
             E.printStackTrace();
             //throw new Exception(E);
@@ -58,7 +66,7 @@ public class VerifyCertificate {
 
     public static X509Certificate decodeCert(String certString) throws CertificateException {
         CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
-        byte [] certByte = Base64.getDecoder().decode(certString);
+        byte[] certByte = Base64.getDecoder().decode(certString);
         InputStream inputStream = new ByteArrayInputStream(certByte);
         X509Certificate cert = (X509Certificate) certFactory.generateCertificate(inputStream);
         return cert;
@@ -74,8 +82,6 @@ public class VerifyCertificate {
     public static String encodeCertificate(X509Certificate cert) throws CertificateEncodingException {
         return Base64.getEncoder().encodeToString(cert.getEncoded());
     }
-
-
 
 
     /**
