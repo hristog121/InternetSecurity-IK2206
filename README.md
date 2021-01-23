@@ -1,6 +1,6 @@
 # InternetSecurity-IK2206-2020
 
-This repo is containing solutions to task in the IK2206 - Internet Security and Privacy course given by KTH. 
+This repo contains solutions to task in the IK2206 - Internet Security and Privacy course given by KTH. 
 
 This project is written in java and implements a VPN - portforwarder. Durning the handshake the VPN is using RSA to set up session key for AES encryption.
 
