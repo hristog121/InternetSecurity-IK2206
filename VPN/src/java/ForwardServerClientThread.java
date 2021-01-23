@@ -10,6 +10,24 @@
  * - Two variants - client connects to listening socket or client is already connected
  * <p>
  * Peter Sjodin, KTH
+ * <p>
+ * Modifications for IK2206:
+ * - Server pool removed
+ * - Two variants - client connects to listening socket or client is already connected
+ * <p>
+ * Peter Sjodin, KTH
+ * <p>
+ * Modifications for IK2206:
+ * - Server pool removed
+ * - Two variants - client connects to listening socket or client is already connected
+ * <p>
+ * Peter Sjodin, KTH
+ * <p>
+ * Modifications for IK2206:
+ * - Server pool removed
+ * - Two variants - client connects to listening socket or client is already connected
+ * <p>
+ * Peter Sjodin, KTH
  */
 
 /**
@@ -31,8 +49,6 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
-import javax.crypto.CipherOutputStream;
-import javax.crypto.CipherInputStream;
 import javax.crypto.NoSuchPaddingException;
 
 public class ForwardServerClientThread extends Thread {
@@ -57,29 +73,41 @@ public class ForwardServerClientThread extends Thread {
      * Wait for client to connect on client listening socket.
      * A server socket is created later by run() method.
      */
-    public ForwardServerClientThread(Socket aClientSocket, String serverhost, int serverport, byte[] sessionKey, byte[] sessionIV) throws IOException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+    public ForwardServerClientThread(String userID, Socket aClientSocket, String serverhost, int serverport, byte[] sessionKey, byte[] sessionIV) {
 
         mClientSocket = aClientSocket;
         mServerPort = serverport;
         mServerHost = serverhost;
 
-        user = "Client";
+        user = userID;
         sessionEncrypter = new SessionEncrypter(sessionKey, sessionIV);
 
-        sessionDecrypter = new SessionDecrypter(sessionKey, sessionIV);
+        try {
+            sessionDecrypter = new SessionDecrypter(sessionKey, sessionIV);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException e) {
+            Logger.log("Problem Occurred with the session Decrypter  for the Client" + e.getMessage());
+            e.printStackTrace();
+
+        }
 
     }
 
-    public ForwardServerClientThread(ServerSocket listensocket, String serverhost, int serverport, byte[] sessionKey, byte[] sessionIV) throws IOException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+    public ForwardServerClientThread(String userID, ServerSocket listensocket, String serverhost, int serverport, byte[] sessionKey, byte[] sessionIV) {
 
         mListenSocket = listensocket;
         mServerPort = serverport;
         mServerHost = serverhost;
 
-        user = "Server";
+        user = userID;
         sessionEncrypter = new SessionEncrypter(sessionKey, sessionIV);
+        try {
+            sessionDecrypter = new SessionDecrypter(sessionKey, sessionIV);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException e) {
 
-        sessionDecrypter = new SessionDecrypter(sessionKey, sessionIV);
+            Logger.log("Problem Occurred with the session Decrypter  for the Server" + e.getMessage());
+            e.printStackTrace();
+        }
+
 
     }
 
@@ -100,9 +128,14 @@ public class ForwardServerClientThread extends Thread {
         try {
 
             // Wait for incoming connection on listen socket
-            mClientSocket = mListenSocket.accept();
-            mClientHostPort = mClientSocket.getInetAddress().getHostName() + ":" + mClientSocket.getPort();
-            System.out.println("Accepted from " + mClientHostPort + " on " + mListenSocket.getLocalPort());
+            if (mListenSocket != null) {
+                mClientSocket = mListenSocket.accept();
+                mClientHostPort = mClientSocket.getInetAddress().getHostName() + ":" + mClientSocket.getPort();
+                System.out.println("Accepted from " + mClientHostPort + " on " + mListenSocket.getLocalPort());
+            }
+            else {
+                mClientHostPort = mClientSocket.getInetAddress().getHostName() + ":" + mClientSocket.getPort();
+            }
 
             try {
                 mServerSocket = new Socket(mServerHost, mServerPort);
@@ -119,7 +152,7 @@ public class ForwardServerClientThread extends Thread {
             InputStream serverIn = mServerSocket.getInputStream();
             OutputStream serverOut = mServerSocket.getOutputStream();
 
-            if (user.equals("Client")){
+            if (user.equals("Client")) {
                 clientIn = sessionDecrypter.openCipherInputStream(clientIn);
                 clientOut = sessionEncrypter.openCipherOutputStream(clientOut);
             }
@@ -161,6 +194,10 @@ public class ForwardServerClientThread extends Thread {
             }
             try {
                 mClientSocket.close();
+            } catch (IOException e) {
+            }
+            try {
+                mListenSocket.close();
             } catch (IOException e) {
             }
 

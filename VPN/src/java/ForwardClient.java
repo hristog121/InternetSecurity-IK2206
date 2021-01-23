@@ -49,15 +49,8 @@ public class ForwardClient
      * learn parameters: session port, host, key, and IV
      */
 
-    private static void doHandshake(Socket handshakeSocket) throws Exception {
-        clientHandshake = new ClientHandshake(handshakeSocket);
-        //clientHandshake.
-        clientHandshake.clientHello(handshakeSocket,arguments.get("usercert"));
-        clientHandshake.receiveServerHello(handshakeSocket, arguments.get("cacert"));
-        clientHandshake.sendForward(handshakeSocket, arguments.get("targethost"), arguments.get("targetport"));
-        clientHandshake.receiveSession(handshakeSocket, arguments.get("key"));
-
-        handshakeSocket.close();
+    private static void doHandshake(Socket handshakeSocket, String targerhost, String targetport, String cacert,String usercert,String ClientPrivateKeyFile) throws IOException, BadPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, CertificateException, NoSuchPaddingException, InvalidKeyException, InvalidKeySpecException {
+        clientHandshake = new ClientHandshake(handshakeSocket,targerhost,targetport,cacert,usercert,ClientPrivateKeyFile);
     }
 
     /*
@@ -81,7 +74,7 @@ public class ForwardClient
          */
         Socket handshakeSocket = new Socket(arguments.get("handshakehost"),
                                             Integer.parseInt(arguments.get("handshakeport")));
-        doHandshake(handshakeSocket);
+        doHandshake(handshakeSocket,arguments.get("targethost"),arguments.get("targetport"),arguments.get("cacert"),arguments.get("usercert"),arguments.get("key"));
 
         /* 
          * Create a new listener socket for the proxy port. This is where
@@ -100,7 +93,7 @@ public class ForwardClient
          * that was learned from the handshake. 
          */
         ForwardServerClientThread forwardThread =
-            new ForwardServerClientThread(proxySocket,
+            new ForwardServerClientThread("Client",proxySocket.accept(),
                                           clientHandshake.sessionHost, clientHandshake.sessionPort, clientHandshake.sessionKey, clientHandshake.sessionIV);
         /*
          * Launch the fowarder 

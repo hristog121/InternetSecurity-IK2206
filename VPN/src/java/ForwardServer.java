@@ -21,18 +21,9 @@
  * (c) 2001 by Svetlin Nakov - http://www.nakov.com
  */
 
-import java.lang.AssertionError;
 import java.lang.Integer;
-import java.util.ArrayList;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.io.IOException;
-import java.io.FileInputStream;
-import java.util.Properties;
-import java.util.StringTokenizer;
 
 public class ForwardServer {
     private static final boolean ENABLE_LOGGING = true;
@@ -49,7 +40,7 @@ public class ForwardServer {
      * target host/port, etc.
      */
     private void doHandshake(Socket handshakeSocket) throws Exception {
-        serverHandshake = new ServerHandshake(handshakeSocket);
+        serverHandshake = new ServerHandshake();
         serverHandshake.receiveClientHello(handshakeSocket, arguments.get("cacert"));
         serverHandshake.serverHello(handshakeSocket, arguments.get("usercert"));
         serverHandshake.receiveForward(handshakeSocket);
@@ -66,51 +57,43 @@ public class ForwardServer {
 
         // Bind server on given TCP port
         int port = Integer.parseInt(arguments.get("handshakeport"));
-        ServerSocket handshakeListenSocket;
-        try {
-            handshakeListenSocket = new ServerSocket(port);
-        } catch (IOException ioex) {
-            throw new IOException("Unable to bind to port " + port + ": " + ioex);
-        }
+        try (ServerSocket handshakeListenSocket = new ServerSocket(port)) {
 
-        log("Nakov Forward Server started on TCP port " + handshakeListenSocket.getLocalPort());
+            log("Nakov Forward Server started on TCP port " + handshakeListenSocket.getLocalPort());
 
-        // Accept client connections and process them until stopped
-        while (true) {
-            try {
-                Socket handshakeSocket = handshakeListenSocket.accept();
+            // Accept client connections and process them until stopped
+            while (true) {
+                try (Socket handshakeSocket = handshakeListenSocket.accept()) {
 
-                String clientHostPort = handshakeSocket.getInetAddress().getHostName() + ":" +
-                        handshakeSocket.getPort();
-                Logger.log("Incoming handshake connection from " + clientHostPort);
+                    String clientHostPort = handshakeSocket.getInetAddress().getHostName() + ":" +
+                            handshakeSocket.getPort();
+                    Logger.log("Incoming handshake connection from " + clientHostPort);
 
-                doHandshake(handshakeSocket);
-                handshakeSocket.close();
+                    doHandshake(handshakeSocket);
 
+                    /*
+                     * Set up port forwarding between an established session socket to target host/port.
+                     *
+                     */
 
-                /*
-                 * Set up port forwarding between an established session socket to target host/port.
-                 *
-                 */
-
-                ForwardServerClientThread forwardThread;
-
-
-                forwardThread = new ForwardServerClientThread(
+                    ForwardServerClientThread forwardThread = new ForwardServerClientThread(
+                            "Server",
                         serverHandshake.sessionSocket,
                         serverHandshake.targetHost,
                         serverHandshake.targetPort,
                         serverHandshake.sessionKey,
                         serverHandshake.sessionIV
-                );
-                forwardThread.start();
-            } catch (Exception e) {
-                //e.printStackTrace();
-                Logger.log("An Error Occurred " + e.getMessage());
-
+                    );
+                    forwardThread.start();
+                } catch (Exception e) {
+                    //e.printStackTrace();
+                    Logger.log("An Error Occurred while handshake" + e.getMessage());
+                }
             }
+        } catch (Exception e) {
+            //e.printStackTrace();
+            Logger.log("An Error Occurred " + e.getMessage());
         }
-
     }
 
     /**
